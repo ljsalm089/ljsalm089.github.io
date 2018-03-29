@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>关于Android APP Hot Fix－Nuwa实现原理分析 | Jiasheng Lee&#39;s Blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="关于NuwaNuwa是由腾讯QQ空间团队实现的为Android APP进行紧急热修复方案的实现，该方案基于Android dex分包方案。 Nuwa的Hot Fix原理介绍Nuwa通过将有问题的Class打包成Dex文件，APP动态加载对应的Dex文件中的Class来覆盖原来的Class文件，从而实现Hot Fix。">
+<meta name="keywords" content="Android,nuwa,DexClassLoader">
+<meta property="og:type" content="article">
+<meta property="og:title" content="关于Android APP Hot Fix－Nuwa实现原理分析">
+<meta property="og:url" content="http://ljsalm089.github.io/2016/11/29/Android_Nuwa实现原理分析/index.html">
+<meta property="og:site_name" content="Jiasheng Lee&#39;s Blog">
+<meta property="og:description" content="关于NuwaNuwa是由腾讯QQ空间团队实现的为Android APP进行紧急热修复方案的实现，该方案基于Android dex分包方案。 Nuwa的Hot Fix原理介绍Nuwa通过将有问题的Class打包成Dex文件，APP动态加载对应的Dex文件中的Class来覆盖原来的Class文件，从而实现Hot Fix。">
+<meta property="og:locale" content="CN-ZH">
+<meta property="og:image" content="http://ljsalm089.github.io/images/nuwa/code_1.jpeg">
+<meta property="og:updated_time" content="2018-03-27T16:11:11.766Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="关于Android APP Hot Fix－Nuwa实现原理分析">
+<meta name="twitter:description" content="关于NuwaNuwa是由腾讯QQ空间团队实现的为Android APP进行紧急热修复方案的实现，该方案基于Android dex分包方案。 Nuwa的Hot Fix原理介绍Nuwa通过将有问题的Class打包成Dex文件，APP动态加载对应的Dex文件中的Class来覆盖原来的Class文件，从而实现Hot Fix。">
+<meta name="twitter:image" content="http://ljsalm089.github.io/images/nuwa/code_1.jpeg">
+  
+    <link rel="alternate" href="/atom.xml" title="Jiasheng Lee&#39;s Blog" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Jiasheng Lee&#39;s Blog</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://ljsalm089.github.io"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-Android_Nuwa实现原理分析" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2016/11/29/Android_Nuwa实现原理分析/" class="article-date">
+  <time datetime="2016-11-29T05:28:00.000Z" itemprop="datePublished">2016-11-29</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Android/">Android</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      关于Android APP Hot Fix－Nuwa实现原理分析
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="关于Nuwa"><a href="#关于Nuwa" class="headerlink" title="关于Nuwa"></a>关于Nuwa</h2><p>Nuwa是由腾讯QQ空间团队实现的为Android APP进行紧急热修复方案的实现，该方案基于Android dex分包方案。</p>
+<h2 id="Nuwa的Hot-Fix原理介绍"><a href="#Nuwa的Hot-Fix原理介绍" class="headerlink" title="Nuwa的Hot Fix原理介绍"></a>Nuwa的Hot Fix原理介绍</h2><p>Nuwa通过将有问题的Class打包成Dex文件，APP动态加载对应的Dex文件中的Class来覆盖原来的Class文件，从而实现Hot Fix。<br><a id="more"></a></p>
+<h2 id="Nuwa实现分析"><a href="#Nuwa实现分析" class="headerlink" title="Nuwa实现分析"></a>Nuwa实现分析</h2><p>Nuwa主要包含两个项目:<a href="https://github.com/jasonross/Nuwa" target="_blank" rel="noopener">Nuwa</a>(Android Library project)和<a href="https://github.com/jasonross/NuwaGradle" target="_blank" rel="noopener">NuwaGradle</a>(Gradle Plugin)，其作用分别如下.<br><br>Nuwa: Android Library project。<br><br>NuwaGradle: Gradle Plugin project。<br></p>
+<p>Nuwa，作为Android Library project，其主要作用是为APP提供加载Dex文件的功能以及提供Hack.class类。加载Dex文件的功能主要在如下类中实现：<br><br><br>Nuwa.java 提供初始化及加载Patch(dex or apk)文件的方法，初始化方法中将存在asset中的hack.apk copy到app的内部储存文件夹中，并加载hack.apk，为app的所有类(not include Application class)提供Hack类支持(后面叙述Hack类的作用)。</p>
+<pre><code>public static void init(Context context) {
+    File dexDir = new File(context.getFilesDir(), DEX_DIR);
+    dexDir.mkdir();
+
+    String dexPath = null;
+    try {
+        dexPath = AssetUtils.copyAsset(context, HACK_DEX, dexDir);
+    } catch (IOException e) {
+        Log.e(TAG, &quot;copy &quot; + HACK_DEX + &quot; failed&quot;);
+        e.printStackTrace();
+    }
+
+    loadPatch(context, dexPath);
+}
+
+public static void loadPatch(Context context, String dexPath) {
+    if (context == null) {
+        Log.e(TAG, &quot;context is null&quot;);
+        return;
+    }
+    if (!new File(dexPath).exists()) {
+        Log.e(TAG, dexPath + &quot; is null&quot;);
+        return;
+    }
+    File dexOptDir = new File(context.getFilesDir(), DEX_OPT_DIR);
+    dexOptDir.mkdir();
+    try {
+        DexUtils.injectDexAtFirst(dexPath, dexOptDir.getAbsolutePath());
+    } catch (Exception e) {
+        Log.e(TAG, &quot;inject &quot; + dexPath + &quot; failed&quot;);
+        e.printStackTrace();
+    }
+}
+</code></pre><p>DexUtils.java 主要提供Patch(dex/apk)的加载方法。在Android中，使用BaseDexClassLoader来加载dex/apk文件，而BaseDexClassLoader使用DexPathList类型的成员变量pathList来存储所有的dex信息，ClassLoader findClass 的过程就是遍历DexPathList中的数组成员变量dexElements来查找对应的Class。BaseDexClassLoader有两个继承类：DexClassLoader和PathClassLoader，PathClassLoader主要用于加载已经进行optdex优化后的dex，而DexClassLoader则用于加载未进行optdex优化的dex/apk。Android默认的classloader是PathClassLoader。关于ClassLoader的更多介绍，请参考<a href="http://www.trinea.cn/android/java-loader-common-class/" target="_blank" rel="noopener">Java ClassLoader基础</a></p>
+<pre><code>/**
+ * 加载dex并插入到PathClassLoader的成员变量pathList中
+ */
+public static void injectDexAtFirst(String dexPath, String defaultDexOptPath) throws NoSuchFieldException, IllegalAccessException, ClassNotFoundException {
+    DexClassLoader dexClassLoader = new DexClassLoader(dexPath, defaultDexOptPath, dexPath, getPathClassLoader());
+    Object baseDexElements = getDexElements(getPathList(getPathClassLoader()));
+    Object newDexElements = getDexElements(getPathList(dexClassLoader));
+    Object allDexElements = combineArray(newDexElements, baseDexElements);
+    Object pathList = getPathList(getPathClassLoader());
+    // 通过反射来设置PathClassLoader的pathList的dexElements
+    ReflectionUtils.setField(pathList, pathList.getClass(), &quot;dexElements&quot;, allDexElements);
+}
+
+/**
+ * 获取Android默认的PathClassLoader
+ */
+private static PathClassLoader getPathClassLoader() {
+    PathClassLoader pathClassLoader = (PathClassLoader) DexUtils.class.getClassLoader();
+    return pathClassLoader;
+}
+
+/**
+ * 获取DexPathList对象中获取其dexElements成员变量
+ */
+private static Object getDexElements(Object paramObject)
+        throws IllegalArgumentException, NoSuchFieldException, IllegalAccessException {
+    return ReflectionUtils.getField(paramObject, paramObject.getClass(), &quot;dexElements&quot;);
+}
+
+/**
+ * 从BaseDexClassLoader对象中获取其pathList成员变量
+ */
+private static Object getPathList(Object baseDexClassLoader)
+        throws IllegalArgumentException, NoSuchFieldException, IllegalAccessException, ClassNotFoundException {
+    return ReflectionUtils.getField(baseDexClassLoader, Class.forName(&quot;dalvik.system.BaseDexClassLoader&quot;), &quot;pathList&quot;);
+}
+
+/**
+ * 合并两个dexElements列表
+ */
+private static Object combineArray(Object firstArray, Object secondArray) {
+    Class&lt;?&gt; localClass = firstArray.getClass().getComponentType();
+    int firstArrayLength = Array.getLength(firstArray);
+    int allLength = firstArrayLength + Array.getLength(secondArray);
+    Object result = Array.newInstance(localClass, allLength);
+    for (int k = 0; k &lt; allLength; ++k) {
+        if (k &lt; firstArrayLength) {
+            Array.set(result, k, Array.get(firstArray, k));
+        } else {
+            Array.set(result, k, Array.get(secondArray, k - firstArrayLength));
+        }
+    }
+    return result;
+}
+</code></pre><p>按照如上的原理，那么使用一个Android Library就可以实现Hot Fix功能，那么为啥Nuwa还要提供一个Gradle Plugin来做支持？<br><br>原来，apk在安装之时，classes.dex会被虚拟机(dexopt)优化称为odex文件，然后才拿去执行，而虚拟机在启动的时候，包含一项verify的选项，该选项致使虚拟机对class进行校验，如果校验成功，对应的类会被打上CLASS_ISPREVERIFIED的标志，而被打上该标示的class，在查找其所引用的class时，会进行判断该class与被引用的class是否在同一个dex文件中，如果不是，则会抛出”Class resolved by unexpected DEX”的IllegalAccessException。由于Patch中的class用于覆盖classes.dex重的类，所以会导致部分类在classes.dex文件中，部分在patch.dex文件中，故会出现如上错误。<br><br><br>而解决此问题的方法就是防止class被打上CLASS_ISPREVERIFIED的标志，因此需在虚拟机对class进行校验时返回false，虚拟机对class的校验如下：<br><br><br><img src="/images/nuwa/code_1.jpeg" alt="此代码在DexVerify.cpp中"><br><br><br></p>
+<ol>
+<li>验证class-&gt;directMethods方法，directMethods包括：static方法、private方法、构造函数<br></li>
+<li>验证class-&gt;virtualMethods方法。<br><br>概括就是如果以上方法中直接引用到的class(第一层级关系，不会进行递归搜索)和class都在同一个dex中的话，那么这个class就不会被打上CLASS_ISPREVERIFIED标志<br><br><br>NuwaGradle这个Gradle Pligin project就是为了实现这个目的的。<br><br></li>
+</ol>
+<p>NuwaGradle，使用Groovy实现的Gradle plugin项目，其主要作用有：1. gradle task插入，2. java字节码级别的代码插入， 3. 记录编译后各class文件的hash值， 4. 根据hash变化与否来进行打包patch.jar<br>查看一个标准Android Project的gradle task：</p>
+<pre><code>$ gradle -q tasks --all
+...
+app:assembleRelease - Assembles all Release builds. [app:compileReleaseSources]
+app:dexRelease
+app:packageRelease
+app:preDexRelease
+...
+app:compileReleaseSources
+app:checkReleaseManifest
+app:compileReleaseAidl
+app:compileReleaseJavaWithJavac
+app:compileReleaseNdk
+app:compileReleaseRenderscript
+app:generateReleaseAssets
+app:generateReleaseBuildConfig
+app:generateReleaseResValues
+app:generateReleaseResources
+app:generateReleaseSources
+app:mergeReleaseAssets
+app:mergeReleaseResources
+app:preBuild
+app:preDebugBuild
+app:preReleaseBuild
+app:prepareComAndroidSupportAppcompatV72220Library - Prepare com.android.support:appcompat-v7:22.2.0
+app:prepareComAndroidSupportDesign2220Library - Prepare com.android.support:design:22.2.0
+app:prepareComAndroidSupportSupportV42220Library - Prepare com.android.support:support-v4:22.2.0
+app:prepareReleaseDependencies
+app:processReleaseJavaRes
+app:processReleaseManifest
+app:processReleaseResources
+...
+</code></pre><p>根据输出可知，在构建Android Project的过程中，存在dex** 和preDex** 任务。而NuwaGradle则在对应的preDex** Task前插入修改字节码的任务及在dex**任务前把有与上一版本相比有修改的class文件提取到另外的文件夹并打包成Patch文件用于发布。</p>
+<pre><code>...
+if (preDexTask) {
+    // 定义在preDex** 任务之前插入的任务名为nuwaJarBeforePreDex**
+    def nuwaJarBeforePreDex = &quot;nuwaJarBeforePreDex${variant.name.capitalize()}&quot;
+    // 定义任务nuwaJarBeforePreDex** 所执行的动作
+    project.task(nuwaJarBeforePreDex) &lt;&lt; {
+        Set&lt;File&gt; inputFiles = preDexTask.inputs.files.files
+        inputFiles.each { inputFile -&gt;
+            def path = inputFile.absolutePath
+            if (NuwaProcessor.shouldProcessPreDexJar(path)) {
+                // 对Jar文件中的class进行代码插入
+                NuwaProcessor.processJar(hashFile, inputFile, patchDir, hashMap, includePackage, excludeClass)
+            }
+        }
+    }
+    // 修改preDex** 与nuwaJarBeforePreDex** 任务的依赖顺序
+    def nuwaJarBeforePreDexTask = project.tasks[nuwaJarBeforePreDex]
+    nuwaJarBeforePreDexTask.dependsOn preDexTask.taskDependencies.getDependencies(preDexTask)
+    preDexTask.dependsOn nuwaJarBeforePreDexTask
+
+    // nuwaJarBeforePreDex** 之前执行一些初始化动作
+    nuwaJarBeforePreDexTask.doFirst(nuwaPrepareClosure)
+
+    // 定义在dex** 任务之前插入的任务名为nuwaClassBeforeDex**
+    def nuwaClassBeforeDex = &quot;nuwaClassBeforeDex${variant.name.capitalize()}&quot;
+    // 定义任务nuwaClassBeforeDex** 所执行的动作
+    project.task(nuwaClassBeforeDex) &lt;&lt; {
+        Set&lt;File&gt; inputFiles = dexTask.inputs.files.files
+            inputFiles.each { inputFile -&gt;
+                def path = inputFile.absolutePath
+                // 对非R及BuildConfig类进行代码插入
+                if (path.endsWith(&quot;.class&quot;) &amp;&amp; !path.contains(&quot;/R\$&quot;) &amp;&amp; !path.endsWith(&quot;/R.class&quot;) &amp;&amp; !path.endsWith(&quot;/BuildConfig.class&quot;)) {
+                    if (NuwaSetUtils.isIncluded(path, includePackage)) {
+                            if (!NuwaSetUtils.isExcluded(path, excludeClass)) {
+                                    def bytes = NuwaProcessor.processClass(inputFile)
+                                      path = path.split(&quot;${dirName}/&quot;)[1]
+                                       def hash = DigestUtils.shaHex(bytes)
+                                       hashFile.append(NuwaMapUtils.format(path, hash))
+                                    // 判断此class的hash知否有变化，有的话则将该class拷贝至patch的文件夹
+                                    if (NuwaMapUtils.notSame(hashMap, path, hash)) {                                                
+                                        NuwaFileUtils.copyBytesToFile(inputFile.bytes, NuwaFileUtils.touchFile(patchDir, path))
+                                       }
+                              }
+                    }
+                }
+            }
+        }
+        // 修改dex** 与nuwaClassBeforeDex** 任务的依赖顺序
+        def nuwaClassBeforeDexTask = project.tasks[nuwaClassBeforeDex]
+        nuwaClassBeforeDexTask.dependsOn dexTask.taskDependencies.getDependencies(dexTask)
+        dexTask.dependsOn nuwaClassBeforeDexTask
+
+        // 将保存class hash的map文件copy到其他目录
+        nuwaClassBeforeDexTask.doLast(copyMappingClosure)
+
+        nuwaPatchTask.dependsOn nuwaClassBeforeDexTask
+        beforeDexTasks.add(nuwaClassBeforeDexTask)
+} else {
+    ...
+}
+</code></pre><p>NuwaGradle使用的是javaassist库来进行字节码插入的, 对Jar文件的代码注入操作：</p>
+<pre><code>public static processJar(File hashFile, File jarFile, File patchDir, Map map, HashSet&lt;String&gt; includePackage, HashSet&lt;String&gt; excludeClass) {
+    if (jarFile) {
+        // 创建tmp 的jar文件
+        def optJar = new File(jarFile.getParent(), jarFile.name + &quot;.opt&quot;)
+
+        def file = new JarFile(jarFile);
+        Enumeration enumeration = file.entries();
+        JarOutputStream jarOutputStream = new JarOutputStream(new FileOutputStream(optJar));
+
+        while (enumeration.hasMoreElements()) {
+            // 读取jar文件中的每个类
+            JarEntry jarEntry = (JarEntry) enumeration.nextElement();
+            String entryName = jarEntry.getName();
+            ZipEntry zipEntry = new ZipEntry(entryName);
+
+            InputStream inputStream = file.getInputStream(jarEntry);
+               jarOutputStream.putNextEntry(zipEntry);
+            // 判断是否需要注入代码
+               if (shouldProcessClassInJar(entryName, includePackage, excludeClass)) {
+                   // 代码注入
+                def bytes = referHackWhenInit(inputStream);
+                // 写入到tmp jar文件中
+                   jarOutputStream.write(bytes);
+
+                   def hash = DigestUtils.shaHex(bytes)
+                hashFile.append(NuwaMapUtils.format(entryName, hash))
+                // 判断是否需要打包进patch
+                if (NuwaMapUtils.notSame(map, entryName, hash)) {
+                    NuwaFileUtils.copyBytesToFile(bytes, NuwaFileUtils.touchFile(patchDir, entryName))
+                }
+            } else {
+                jarOutputStream.write(IOUtils.toByteArray(inputStream));
+            }
+            jarOutputStream.closeEntry();
+        }
+        jarOutputStream.close();
+        file.close();
+
+        if (jarFile.exists()) {
+            jarFile.delete()
+        }
+        // 覆盖原jar文件
+        optJar.renameTo(jarFile)
+    }
+}
+</code></pre><p>对class文件的代码注入操作：</p>
+<pre><code>public static byte[] processClass(File file) {
+    def optClass = new File(file.getParent(), file.name + &quot;.opt&quot;)
+
+    FileInputStream inputStream = new FileInputStream(file);
+    FileOutputStream outputStream = new FileOutputStream(optClass)
+    // 代码注入
+    def bytes = referHackWhenInit(inputStream);
+    outputStream.write(bytes)
+    inputStream.close()
+    outputStream.close()
+    if (file.exists()) {
+        file.delete()
+    }
+    optClass.renameTo(file)
+    return bytes
+}
+
+private static byte[] referHackWhenInit(InputStream inputStream) {
+    ClassReader cr = new ClassReader(inputStream);
+    ClassWriter cw = new ClassWriter(cr, 0);
+    ClassVisitor cv = new ClassVisitor(Opcodes.ASM4, cw) {
+        @Override
+        public MethodVisitor visitMethod(int access, String name, String desc,
+                                         String signature, String[] exceptions) {
+
+            MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
+            mv = new MethodVisitor(Opcodes.ASM4, mv) {
+                @Override
+                void visitInsn(int opcode) {
+                    // Java编译器在为它编译的每个类都至少生成一个实例化方法，即&lt;init&gt;方法。
+                    // 在类的实例化方法&lt;init&gt;中，给其添加一个Hack类型的常量
+                    if (&quot;&lt;init&gt;&quot;.equals(name) &amp;&amp; opcode == Opcodes.RETURN) {
+                        super.visitLdcInsn(Type.getType(&quot;Lcn/jiajixin/nuwa/Hack;&quot;));
+                    }
+                   super.visitInsn(opcode);
+                }
+            }
+            return mv;
+        }
+
+    };
+    cr.accept(cv, 0);
+    return cw.toByteArray();
+}
+</code></pre><p>如此则可避免所有的类被打上CLASS_ISPREVERIFIED标志，即class调用不同dex文件中的class也不会出错(PS:Application不应该被注入Hack类型常量，因为Hack.apk是在Application的attachBaseContext方法中加载，而在构造方法就引用了Hack类，因此会抛出异常)。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><h2 id="遇到的坑"><a href="#遇到的坑" class="headerlink" title="遇到的坑"></a>遇到的坑</h2><ol>
+<li><p><big><strong>使用了Nuwa之后，执行gradle clean &amp;&amp; gradle build –info 命令会出现一下错误：</strong></big><br><br>:app:nuwaJarBeforeDex***Release (Thread[Daemon worker,5,main]) completed. Took 0.011 secs.<br><br><br>FAILURE: Build failed with an exception.<br><br><br>* What went wrong:<br><br>Execution failed for task ‘:app:nuwaJarBeforeDex***Release’.<br><br>> $(ProjectPath)/app/build/intermediates/classes-proguard/***/release/classes.jar (No such file or directory)<br><br><br>出错原因：在VIPME项目中，针对debug和release的构建使用了不同的规则，为方便开发人员调试，在debug的构建规则中未打开代码混淆，而在release的规则重则打开了代码混淆，而使用gradle build进行构建的时候，是同时构建debug和release的版本。<br><br>通过查看gradle build | grep “:*:*“的输出：</p>
+<pre><code>...
+:facebook:compileReleaseJavaWithJavac
+:facebook:extractReleaseAnnotations
+:facebook:mergeReleaseProguardFiles UP-TO-DATE
+:facebook:packageReleaseJar
+:facebook:compileReleaseNdk UP-TO-DATE
+:facebook:packageReleaseJniLibs UP-TO-DATE
+:facebook:packageReleaseLocalJar UP-TO-DATE
+:facebook:packageReleaseRenderscript UP-TO-DATE
+:facebook:packageReleaseResources
+:facebook:bundleRelease
+:app:prepareCnJiajixinNuwaNuwa100Library
+:app:prepareComAndroidSupportAppcompatV72220Library
+:app:prepareComAndroidSupportDesign2220Library
+:app:prepareComAndroidSupportRecyclerviewV72220Library
+:app:prepareComAndroidSupportSupportV42221Library
+:app:prepareComFacebookAndroidFacebook451Library
+:app:prepareComGoogleAndroidGmsPlayServicesAnalytics780Library
+:app:prepareComGoogleAndroidGmsPlayServicesBase780Library
+:app:prepareComGoogleAndroidGmsPlayServicesGcm780Library
+:app:prepareComTwitterSdkAndroidTweetComposer100Library
+:app:prepareComTwitterSdkAndroidTwitterCore160Library
+:app:prepareIoFabricSdkAndroidFabric136Library
+:app:prepareVipmeAndroidViewPagerIndicatorUnspecifiedLibrary
+:app:prepareOfficialDebugDependencies
+:app:compileOfficialDebugAidl
+:app:compileOfficialDebugRenderscript
+:app:generateOfficialDebugBuildConfig
+:app:generateOfficialDebugAssets UP-TO-DATE
+:app:mergeOfficialDebugAssets
+:app:generateOfficialDebugResValues
+:app:processOfficialDebugGoogleServices
+...
+:app:preDexOfficialDebug
+:app:nuwaClassBeforeDexOfficialDebug
+:app:dexOfficialDebug
+:app:validateDebugSigning
+:app:packageOfficialDebug
+:app:assembleOfficialDebug
+:app:assembleDebug
+:app:checkOfficialReleaseManifest
+:app:prepareOfficialReleaseDependencies
+:app:compileOfficialReleaseAidl
+:app:compileOfficialReleaseRenderscript
+:app:generateOfficialReleaseBuildConfig
+:app:generateOfficialReleaseAssets UP-TO-DATE
+:app:mergeOfficialReleaseAssets
+:app:generateOfficialReleaseResValues
+:app:processOfficialReleaseGoogleServices
+:app:generateOfficialReleaseResources
+...
+</code></pre></li>
+</ol>
+<p>可知gradle对第三方依赖库项目(如VIPME所依赖的facebook和viewpagerindicator)的处理在是在所有的debugtask之前，而debug 的所有task又在release task之前，在app/build/intermediates/exploded-aar/文件夹中查看到，gradle对第三方依赖库处理的输出文件并没有对debug和release进行分开存放。<br><br>同时，在build的过程中，混淆过程输出很多warning信息：</p>
+<pre><code>:app:proguardOfficialRelease
+...
+Warning: com.facebook.AccessTokenManager$1: can&apos;t find referenced class cn.jiajixin.nuwa.Hack
+Warning: com.facebook.AccessTokenManager$2: can&apos;t find referenced class cn.jiajixin.nuwa.Hack
+Warning: com.facebook.AccessTokenManager$3: can&apos;t find referenced class cn.jiajixin.nuwa.Hack
+Warning: com.facebook.AccessTokenManager$4: can&apos;t find referenced class cn.jiajixin.nuwa.Hack
+Warning: com.facebook.AccessTokenManager$RefreshResult: can&apos;t find referenced class cn.jiajixin.nuwa.Hack
+Warning: com.facebook.AccessTokenSource: can&apos;t find referenced class cn.jiajixin.nuwa.Hack
+Warning: com.facebook.AccessTokenTracker: can&apos;t find referenced class cn.jiajixin.nuwa.Hack
+Warning: com.facebook.AccessTokenTracker$CurrentAccessTokenBroadcastReceiver: can&apos;t find referenced class cn.jiajixin.nuwa.Hack
+Warning: com.facebook.BuildConfig: can&apos;t find referenced class cn.jiajixin.nuwa.Hack
+Warning: com.facebook.CallbackManager$Factory: can&apos;t find referenced class cn.jiajixin.nuwa.Hack
+Warning: com.facebook.FacebookActivity: can&apos;t find referenced class cn.jiajixin.nuwa.Hack
+...
+</code></pre><p>由以上错误信息可知，release的proguard task失败导致未输出对应的class文件，而使app:nuwaJarBeforeDex task缺失输入文件而失败。但是NuwaGradle 是在preDex*<em> task之前也就是proguard之后才注入Hack代码的，怎么会在proguard之前就已经有Hack了呢？猜测是debug和release都使用了同一份的第三方依赖库build输出的产物，而在debug 的proguard task已经对第三方依赖库的代码进行了注入，所以导致release proguard task运行失败。<br><br>于是提取app/build/intermediates/exploded-aar/文件夹中facebook的classes.jar文件重命名为classes.zip并解压出来，提取其中的某个类\</em>**.class并对其反编译所得：<br></p>
+<pre><code>$javap -v ***.class | grep Hack
+  #803 = Utf8               cn/jiajixin/nuwa/Hack
+  #804 = Class              #803          //  cn/jiajixin/nuwa/Hack
+  6: ldc_w         #804                // class cn/jiajixin/nuwa/Hack
+       9: ldc_w         #804                // class cn/jiajixin/nuwa/Hack
+      85: ldc_w         #804                // class cn/jiajixin/nuwa/Hack
+     552: ldc_w         #804                // class cn/jiajixin/nuwa/Hack
+</code></pre><p>由此证明debug和release使用相同的第三方依赖库产物来进行下一步的动作从而导致出现以上的错误。<br><br><br></p>
+<p><big><em>解决方法：</em></big><br></p>
+<ol>
+<li>使用gradle assembleRelease 命令只针对release进行构建 (推荐)；<br></li>
+<li>打开debug的混淆（由于debug的task中已对第三方依赖库的产物jar进行了混淆，所以release的时候不会再次混淆）。<br></li>
+</ol>
+<p>(Done)</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://ljsalm089.github.io/2016/11/29/Android_Nuwa实现原理分析/" data-id="cjfc7jwtz0004ht8kx4n4ogqo" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Android/">Android</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/DexClassLoader/">DexClassLoader</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/nuwa/">nuwa</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2017/12/20/基于HTTP报文分析HTTP协议/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          基于HTTP报文分析HTTP协议
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2016/01/20/AIDL实现原理分析/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">AIDL的使用和实现原理分析</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Android/">Android</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/android-aidl/">android aidl</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/git/">git</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/network/">network</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Android/">Android</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Charles/">Charles</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/DexClassLoader/">DexClassLoader</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/HTTP/">HTTP</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Sinature-Scheme-v1/">Sinature Scheme v1</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Sinature-Scheme-v2/">Sinature Scheme v2</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/android/">android</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/apksigning/">apksigning</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/git/">git</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/nuwa/">nuwa</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ssh/">ssh</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/zip/">zip</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Charles/" style="font-size: 10px;">Charles</a> <a href="/tags/DexClassLoader/" style="font-size: 10px;">DexClassLoader</a> <a href="/tags/HTTP/" style="font-size: 10px;">HTTP</a> <a href="/tags/Sinature-Scheme-v1/" style="font-size: 10px;">Sinature Scheme v1</a> <a href="/tags/Sinature-Scheme-v2/" style="font-size: 10px;">Sinature Scheme v2</a> <a href="/tags/android/" style="font-size: 10px;">android</a> <a href="/tags/apksigning/" style="font-size: 10px;">apksigning</a> <a href="/tags/git/" style="font-size: 20px;">git</a> <a href="/tags/nuwa/" style="font-size: 10px;">nuwa</a> <a href="/tags/ssh/" style="font-size: 10px;">ssh</a> <a href="/tags/zip/" style="font-size: 10px;">zip</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/12/">December 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">November 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/05/">May 2014</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2018/03/19/APK签名机制说明/">APK签名机制说明</a>
+          </li>
+        
+          <li>
+            <a href="/2017/12/20/基于HTTP报文分析HTTP协议/">基于HTTP报文分析HTTP协议</a>
+          </li>
+        
+          <li>
+            <a href="/2016/11/29/Android_Nuwa实现原理分析/">关于Android APP Hot Fix－Nuwa实现原理分析</a>
+          </li>
+        
+          <li>
+            <a href="/2016/01/20/AIDL实现原理分析/">AIDL的使用和实现原理分析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/10/Android项目版本管理/">Android项目版本管理</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2018 Jiasheng Lee<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+
+
+  </div>
+</body>
+</html>
