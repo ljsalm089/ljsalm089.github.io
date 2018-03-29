@@ -7,13 +7,13 @@
   
   <title>APK签名机制说明 | Jiasheng Lee&#39;s Blog</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="APK签名机制说明背景由于业务需求，我们需要统计用户下载安装apk的来源，所以针对不同的应用市场或活动页面，我们发布的apk都带了对应的渠道信息，针对apk携带对应的渠道信息，网上已经有很多成熟的方案了，例如使用gradle来构建不同的渠道包等方式。然而考虑到打包效率的问题，我们并没有使用gradle来构建多渠道的方式，而是使用美团的自动化生成渠道包的方式来实现的。 由于这种方式并不能适配APK">
+  <meta name="description" content="背景由于业务需求，我们需要统计用户下载安装apk的来源，所以针对不同的应用市场或活动页面，我们发布的apk都带了对应的渠道信息，针对apk携带对应的渠道信息，网上已经有很多成熟的方案了，例如使用gradle来构建不同的渠道包等方式。然而考虑到打包效率的问题，我们并没有使用gradle来构建多渠道的方式，而是使用美团的自动化生成渠道包的方式来实现的。 由于这种方式并不能适配APK Signature">
 <meta name="keywords" content="android,apksigning,zip,Sinature Scheme v1,Sinature Scheme v2">
 <meta property="og:type" content="article">
 <meta property="og:title" content="APK签名机制说明">
 <meta property="og:url" content="http://ljsalm089.github.io/2018/03/19/APK签名机制说明/index.html">
 <meta property="og:site_name" content="Jiasheng Lee&#39;s Blog">
-<meta property="og:description" content="APK签名机制说明背景由于业务需求，我们需要统计用户下载安装apk的来源，所以针对不同的应用市场或活动页面，我们发布的apk都带了对应的渠道信息，针对apk携带对应的渠道信息，网上已经有很多成熟的方案了，例如使用gradle来构建不同的渠道包等方式。然而考虑到打包效率的问题，我们并没有使用gradle来构建多渠道的方式，而是使用美团的自动化生成渠道包的方式来实现的。 由于这种方式并不能适配APK">
+<meta property="og:description" content="背景由于业务需求，我们需要统计用户下载安装apk的来源，所以针对不同的应用市场或活动页面，我们发布的apk都带了对应的渠道信息，针对apk携带对应的渠道信息，网上已经有很多成熟的方案了，例如使用gradle来构建不同的渠道包等方式。然而考虑到打包效率的问题，我们并没有使用gradle来构建多渠道的方式，而是使用美团的自动化生成渠道包的方式来实现的。 由于这种方式并不能适配APK Signature">
 <meta property="og:locale" content="CN-ZH">
 <meta property="og:image" content="http://ljsalm089.github.io/images/about_apk_signing/apk_file_format_1.jpg">
 <meta property="og:image" content="http://ljsalm089.github.io/images/about_apk_signing/zip_file_format_1.png">
@@ -21,10 +21,13 @@
 <meta property="og:image" content="http://ljsalm089.github.io/images/about_apk_signing/generate_manifest_file_1.jpg">
 <meta property="og:image" content="http://ljsalm089.github.io/images/about_apk_signing/generate_name_sf_file_1.jpg">
 <meta property="og:image" content="http://ljsalm089.github.io/images/about_apk_signing/generate_name_rsa_file_1.jpg">
-<meta property="og:updated_time" content="2018-03-28T06:47:52.344Z">
+<meta property="og:image" content="http://ljsalm089.github.io/images/about_apk_signing/apk_before_after_signing.png">
+<meta property="og:image" content="http://ljsalm089.github.io/images/about_apk_signing/scheme_v2_find_signing_block_1.jpg">
+<meta property="og:image" content="http://ljsalm089.github.io/images/about_apk_signing/scheme_v2_find_signing_block_2.png">
+<meta property="og:updated_time" content="2018-03-29T09:43:53.267Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="APK签名机制说明">
-<meta name="twitter:description" content="APK签名机制说明背景由于业务需求，我们需要统计用户下载安装apk的来源，所以针对不同的应用市场或活动页面，我们发布的apk都带了对应的渠道信息，针对apk携带对应的渠道信息，网上已经有很多成熟的方案了，例如使用gradle来构建不同的渠道包等方式。然而考虑到打包效率的问题，我们并没有使用gradle来构建多渠道的方式，而是使用美团的自动化生成渠道包的方式来实现的。 由于这种方式并不能适配APK">
+<meta name="twitter:description" content="背景由于业务需求，我们需要统计用户下载安装apk的来源，所以针对不同的应用市场或活动页面，我们发布的apk都带了对应的渠道信息，针对apk携带对应的渠道信息，网上已经有很多成熟的方案了，例如使用gradle来构建不同的渠道包等方式。然而考虑到打包效率的问题，我们并没有使用gradle来构建多渠道的方式，而是使用美团的自动化生成渠道包的方式来实现的。 由于这种方式并不能适配APK Signature">
 <meta name="twitter:image" content="http://ljsalm089.github.io/images/about_apk_signing/apk_file_format_1.jpg">
   
     <link rel="alternate" href="/atom.xml" title="Jiasheng Lee&#39;s Blog" type="application/atom+xml">
@@ -61,9 +64,9 @@
       </nav>
       <nav id="sub-nav">
         
-          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS"></a>
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
         
-        <a id="nav-search-btn" class="nav-icon" title="Buscar"></a>
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
       </nav>
       <div id="search-form-wrap">
         <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://ljsalm089.github.io"></form>
@@ -98,19 +101,20 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <h3 id="APK签名机制说明"><a href="#APK签名机制说明" class="headerlink" title="APK签名机制说明"></a>APK签名机制说明</h3><h5 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h5><p>由于业务需求，我们需要统计用户下载安装apk的来源，所以针对不同的应用市场或活动页面，我们发布的apk都带了对应的渠道信息，针对apk携带对应的渠道信息，网上已经有很多成熟的方案了，例如使用gradle来构建不同的渠道包等方式。然而考虑到打包效率的问题，我们并没有使用gradle来构建多渠道的方式，而是使用<a href="https://tech.meituan.com/mt-apk-packaging.html" target="_blank" rel="noopener">美团</a>的自动化生成渠道包的方式来实现的。</p>
+        <h4 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h4><p>由于业务需求，我们需要统计用户下载安装apk的来源，所以针对不同的应用市场或活动页面，我们发布的apk都带了对应的渠道信息，针对apk携带对应的渠道信息，网上已经有很多成熟的方案了，例如使用gradle来构建不同的渠道包等方式。然而考虑到打包效率的问题，我们并没有使用gradle来构建多渠道的方式，而是使用<a href="https://tech.meituan.com/mt-apk-packaging.html" target="_blank" rel="noopener">美团</a>的自动化生成渠道包的方式来实现的。</p>
 <p>由于这种方式并不能适配APK Signature Scheme v2机制，所以我们的项目中一直都关闭了使用v2的签名机制。然后由于最近一些安全的问题，所以我们不得不在项目中开始使用v2机制来进行签名apk，虽然<a href="https://tech.meituan.com/android-apk-v2-signature-scheme.html" target="_blank" rel="noopener">美团</a>针对v2签名机制提供了另外的生成渠道包方案，但是还是想在使用之前，更多了解一下android的签名机制。<br><a id="more"></a></p>
-<h4 id="关于APP签名"><a href="#关于APP签名" class="headerlink" title="关于APP签名"></a>关于APP签名</h4><p>APP签字在Android系统中有着极其重要的作用，主要体现在如下：</p>
+<h3 id="关于APP签名"><a href="#关于APP签名" class="headerlink" title="关于APP签名"></a>关于APP签名</h3><p>APP签字在Android系统中有着极其重要的作用，主要体现在如下：</p>
 <ol>
 <li>校验apk是否伪造或被修改过</li>
 <li>升级APP时校验目标apk是否与原app一致</li>
 <li>代码或数据共享，一个应用可以为另一个使用相同证书签名的应用程序公开自己的功能或数据</li>
 </ol>
-<h5 id="APK格式"><a href="#APK格式" class="headerlink" title="APK格式"></a>APK格式</h5><p>​apk文件，本质上就是一个zip格式的文件：<br>​<img src="/images/about_apk_signing/apk_file_format_1.jpg" alt=""><br><br>​而apk签名，则是基于此文件格式，添加apk文件中部分数据的数字签名信息；而在检验的时候，读取该部分签名信息并对其所对应的部分数据进行校验。</p>
-<h5 id="Zip文件格式"><a href="#Zip文件格式" class="headerlink" title="Zip文件格式"></a>Zip文件格式</h5><p>因为apk本质就是一个zip格式的文件，所以，在开始了解apk的签名之前，有必要了解一下zip的文件格式：<br><img src="/images/about_apk_signing/zip_file_format_1.png" alt=""><br>.ZIP文件格式总览：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">[文件标头 1]</span><br><span class="line">[文件数据 1]</span><br><span class="line">[数据描述符记录 1]</span><br><span class="line">.</span><br><span class="line">.</span><br><span class="line">.</span><br><span class="line">[文件标头 n]</span><br><span class="line">[文件数据 n]</span><br><span class="line">[数据描述符记录 n]</span><br><span class="line">[归档解密标头]</span><br><span class="line">[归档额外数据记录]</span><br><span class="line">[中央目录结构]</span><br><span class="line">[中央目录记录的 Zip64 结尾]</span><br><span class="line">[中央目录定位器的 Zip64 结尾]</span><br><span class="line">[中央目录记录的结尾]</span><br></pre></td></tr></table></figure></p>
+<h4 id="APK格式"><a href="#APK格式" class="headerlink" title="APK格式"></a>APK格式</h4><p>​apk文件，本质上就是一个zip格式的文件：<br>​<img src="/images/about_apk_signing/apk_file_format_1.jpg" alt=""><br><br>​而apk签名，则是基于此文件格式，添加apk文件中部分数据的数字签名信息；而在检验的时候，读取该部分签名信息并对其所对应的部分数据进行校验。</p>
+<h4 id="Zip文件格式"><a href="#Zip文件格式" class="headerlink" title="Zip文件格式"></a>Zip文件格式</h4><p>因为apk本质就是一个zip格式的文件，所以，在开始了解apk的签名之前，有必要了解一下zip的文件格式：<br><img src="/images/about_apk_signing/zip_file_format_1.png" alt=""><br>.ZIP文件格式总览：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">[文件标头 1]</span><br><span class="line">[文件数据 1]</span><br><span class="line">[数据描述符记录 1]</span><br><span class="line">.</span><br><span class="line">.</span><br><span class="line">.</span><br><span class="line">[文件标头 n]</span><br><span class="line">[文件数据 n]</span><br><span class="line">[数据描述符记录 n]</span><br><span class="line">[归档解密标头]</span><br><span class="line">[归档额外数据记录]</span><br><span class="line">[中央目录结构]</span><br><span class="line">[中央目录记录的 Zip64 结尾]</span><br><span class="line">[中央目录定位器的 Zip64 结尾]</span><br><span class="line">[中央目录记录的结尾]</span><br></pre></td></tr></table></figure></p>
 <p>其中有几个数据在后续的漏洞和签名分析中，有重要作用，在这进行一下详细说明：<br><strong>Local File Header:</strong><br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">- A 文件标头 --------------------</span><br><span class="line"></span><br><span class="line">文件标头签名       4 字节 [开始 0] (0x04034b50)</span><br><span class="line">所需版本           2 字节 [开始 4]</span><br><span class="line">一般用途位标记     2 字节 [开始 6]</span><br><span class="line">压缩方法           2 字节 [开始 8] (8=DEFLATE; 0=UNCOMPRESSED)</span><br><span class="line">文件的最后修改时间 2 字节 [开始 10]</span><br><span class="line">文件的最后修改日期 2 字节 [开始 12]</span><br><span class="line">crc-32             4 字节 [开始 14]</span><br><span class="line">压缩后的大小       4 字节 [开始 18]</span><br><span class="line">解压缩后的大小     4 字节 [开始 22]</span><br><span class="line">文件名长度         2 字节 [开始 26]</span><br><span class="line">额外字段长度       2 字节 [开始 28]</span><br><span class="line"></span><br><span class="line">文件名             变量</span><br><span class="line">额外字段           变量</span><br></pre></td></tr></table></figure></p>
 <p><strong>End of Central Directory</strong><br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">- I 中央目录记录的结尾 --------------------</span><br><span class="line"></span><br><span class="line">中央目录记录签名                4 字节 [开始 0] (0x06054b50) 注：使用“冒泡”从文件尾追查上来，找到这个签名。</span><br><span class="line">磁盘编号                        2 字节 [开始 4]</span><br><span class="line">中央目录开始磁盘编号            2 字节 [开始 6]</span><br><span class="line">本磁盘上在中央目录里的入口总数  2 字节 [开始 8]</span><br><span class="line">中央目录里的入口总数            2 字节 [开始 10] 注：文件总数，文件夹也算一个文件。</span><br><span class="line">中央目录的大小                  4 字节 [开始 12]</span><br><span class="line">中央目录对第一张磁盘的偏移量    4 字节 [开始 16]</span><br><span class="line">.ZIP 文件注释长度               2 字节 [开始 20]</span><br><span class="line">.ZIP 文件注释                   变量   [开始 22]</span><br></pre></td></tr></table></figure></p>
-<h5 id="APK-Signature-Scheme-v1"><a href="#APK-Signature-Scheme-v1" class="headerlink" title="APK Signature Scheme v1"></a>APK Signature Scheme v1</h5><p>​v1 scheme是基于<a href="https://docs.oracle.com/javase/8/docs/technotes/guides/jar/jar.html" target="_blank" rel="noopener">jar签名</a>来实现，而jar的签名机制，则是往zip文件中，插入一个META-INFO文件夹，然后将所有与签名相关的信息都保存在这个文件夹下。同样，通过对比已签名和未签名apk解压后的META-INFO文件夹下的文件，以分析v1 scheme签名的实现原理：<br>​<img src="/images/about_apk_signing/compare_apk_signed_unsign.jpg" alt=""><br>相比未签名的apk，已签名的apk的META-INFO文件夹下，多了{name}.RSA和{name}.SF文件，根据<a href="https://docs.oracle.com/javase/8/docs/technotes/guides/jar/jar.html" target="_blank" rel="noopener">JAR文件格式描述</a>可知：</p>
+<p>而解析zip文件的过程，则是通过从文件尾部逆向查找End of Central Directory的起始标识，从而解析对应的Central Directory，进而解析zip里面的所有文件信息。</p>
+<h4 id="APK-Signature-Scheme-v1"><a href="#APK-Signature-Scheme-v1" class="headerlink" title="APK Signature Scheme v1"></a>APK Signature Scheme v1</h4><p>​v1 scheme是基于<a href="https://docs.oracle.com/javase/8/docs/technotes/guides/jar/jar.html" target="_blank" rel="noopener">jar签名</a>来实现，而jar的签名机制，则是往zip文件中，插入一个META-INFO文件夹，然后将所有与签名相关的信息都保存在这个文件夹下。同样，通过对比已签名和未签名apk解压后的META-INFO文件夹下的文件，以分析v1 scheme签名的实现原理：<br>​<img src="/images/about_apk_signing/compare_apk_signed_unsign.jpg" alt=""><br>相比未签名的apk，已签名的apk的META-INFO文件夹下，多了{name}.RSA和{name}.SF文件，根据<a href="https://docs.oracle.com/javase/8/docs/technotes/guides/jar/jar.html" target="_blank" rel="noopener">JAR文件格式描述</a>可知：</p>
 <ul>
 <li>MANIFEST.MF 保存了apk中所有需要校验的文件所对应的摘要</li>
 <li>{name}.SF 保存了MANIFEST.MF中所对应每块数据所对应的摘要</li>
@@ -123,12 +127,16 @@
 <li>{name}.RSA文件的生成，在<code>writeSignatureBlock</code>方法中。该方法将生成的{name}.SF文件经过非对称加密生成密文之后，与公钥合并生成{name}.RSA文件：<br><img src="/images/about_apk_signing/generate_name_rsa_file_1.jpg" alt=""></li>
 </ul>
 <p><br>而在对apk进行验签的过程，则是与生成apk相反的过程，系统会先根据{name}.RSA中的公钥和密文，还原出原文并与{name}.SF对比，以验证{name}.SF文件是否被修改过，然后在根据MANIFEST.MF文件(<em>读取MANIFEST.MF的时候，<strong>会根据MANIFEST.MF中section信息进行验证apk中的文件是否会修改过的</strong></em>)中的section与{name}.SF文件中的section进行对比验证。<br><br>由于v1签名不会对META-INFO文件夹内的文件进行校验，所以可以通过在META-INFO文件夹下添加文件以达到APK携带渠道等信息的目的。</p>
-<h5 id="APK-Signature-Scheme-v2"><a href="#APK-Signature-Scheme-v2" class="headerlink" title="APK Signature Scheme v2"></a>APK Signature Scheme v2</h5><h5 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h5><p><a href="https://source.android.com/security/apksigning/" target="_blank" rel="noopener">1. Application Signing</a><br><br><a href="https://source.android.com/security/apksigning/v2" target="_blank" rel="noopener">2. APK Signature Scheme v2</a><br><br><a href="https://source.android.com/security/apksigning/v2#v1-verification" target="_blank" rel="noopener">3. APK Signature Scheme v1</a><br><br><a href="https://docs.oracle.com/javase/8/docs/technotes/guides/jar/jar.html" target="_blank" rel="noopener">4. JAR File Specification</a><br><br><a href="https://en.wikipedia.org/wiki/Zip_(file_format" target="_blank" rel="noopener">5. Zip (file format)</a>#Standardization)<br><br><a href="https://pkware.cachefly.net/webdocs/APPNOTE/APPNOTE-6.2.0.txt" target="_blank" rel="noopener">6. .ZIP File Format Specification</a><br><br><a href="https://mp.weixin.qq.com/s/jmhqN34D85tEZF_U6HXcqg" target="_blank" rel="noopener">7. 新一代开源Android渠道包生成工具Walle</a><br></p>
+<h4 id="APK-Signature-Scheme-v2"><a href="#APK-Signature-Scheme-v2" class="headerlink" title="APK Signature Scheme v2"></a>APK Signature Scheme v2</h4><p>鉴于APK Sinature Scheme v1存在安全漏洞，所以google推出了新的签名校验的方式：APK Signature Scheme v2。<br>v2是针对整个文件进行签名校验的机制，所以具有更高的安全性和更好的校验速度。其实现机制在于，在ZIP 的Central Directory 部分前面插入一个APK Signature Block，如下图：<br><img src="/images/about_apk_signing/apk_before_after_signing.png" alt=""></p>
+<h5 id="APK-Signature-Scheme-v2-Signing-Block"><a href="#APK-Signature-Scheme-v2-Signing-Block" class="headerlink" title="APK Signature Scheme v2 Signing Block"></a>APK Signature Scheme v2 Signing Block</h5><p>Signing Block 格式如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">[size of block]                         8 字节</span><br><span class="line">[length prefixed ID-values pairs]       8 字节 + 4 字节 + (length - 4)字节 (8字节的长度，标识后面这对id和value的长度)</span><br><span class="line">.</span><br><span class="line">.</span><br><span class="line">.</span><br><span class="line">[length prefixed ID-values pairs]</span><br><span class="line">[size of block]                         8 字节</span><br><span class="line">[magic]                                 16 字节，内容为&quot;APK Sig Block 42&quot;</span><br></pre></td></tr></table></figure></p>
+<p>而apk的签名校验信息(公钥及加密的密文)则是存在ID为<code>0x7109871a</code>的value中，所以获取apk签名校验信息的过程，其实就是查找Signing Block中id为<code>0x7109871a</code>的过程：<br><img src="/images/about_apk_signing/scheme_v2_find_signing_block_1.jpg" alt=""><br><img src="/images/about_apk_signing/scheme_v2_find_signing_block_2.png" alt=""><br>而在查找签名校验信息的过程中，系统会过滤ID为其他值的键值对。</p>
+<h4 id="关于APK-Shgnature-Scheme-v1的漏洞"><a href="#关于APK-Shgnature-Scheme-v1的漏洞" class="headerlink" title="关于APK Shgnature Scheme v1的漏洞"></a>关于APK Shgnature Scheme v1的漏洞</h4><h4 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h4><p><a href="https://source.android.com/security/apksigning/" target="_blank" rel="noopener">1. Application Signing</a><br><a href="https://source.android.com/security/apksigning/v2" target="_blank" rel="noopener">2. APK Signature Scheme v2</a><br><a href="https://source.android.com/security/apksigning/v2#v1-verification" target="_blank" rel="noopener">3. APK Signature Scheme v1</a><br><a href="https://docs.oracle.com/javase/8/docs/technotes/guides/jar/jar.html" target="_blank" rel="noopener">4. JAR File Specification</a><br><a href="https://en.wikipedia.org/wiki/Zip_&#40;file_format&#41;#Standardization" target="_blank" rel="noopener">5. Zip (file format)</a><br><a href="https://pkware.cachefly.net/webdocs/APPNOTE/APPNOTE-6.2.0.txt" target="_blank" rel="noopener">6. .ZIP File Format Specification</a></p>
+<p><a href="https://tech.meituan.com/mt-apk-packaging.html" target="_blank" rel="noopener">7. 美团Android自动化之旅—生成渠道包</a><br><a href="https://tech.meituan.com/android-apk-v2-signature-scheme.html" target="_blank" rel="noopener">8. 新一代开源Android渠道包生成工具Walle</a></p>
 
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://ljsalm089.github.io/2018/03/19/APK签名机制说明/" data-id="cjfc7jwtr0000ht8kq2l42lsw" class="article-share-link">Compartir</a>
+      <a data-url="http://ljsalm089.github.io/2018/03/19/APK签名机制说明/" data-id="cjfc7jwtr0000ht8kq2l42lsw" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Sinature-Scheme-v1/">Sinature Scheme v1</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Sinature-Scheme-v2/">Sinature Scheme v2</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/android/">android</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/apksigning/">apksigning</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/zip/">zip</a></li></ul>
@@ -141,7 +149,7 @@
   
   
     <a href="/2017/12/20/基于HTTP报文分析HTTP协议/" id="article-nav-older" class="article-nav-link-wrap">
-      <strong class="article-nav-caption">Viejo</strong>
+      <strong class="article-nav-caption">Older</strong>
       <div class="article-nav-title">基于HTTP报文分析HTTP协议</div>
     </a>
   
@@ -156,7 +164,7 @@
   
     
   <div class="widget-wrap">
-    <h3 class="widget-title">Categorías</h3>
+    <h3 class="widget-title">Categories</h3>
     <div class="widget">
       <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Android/">Android</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/git/">git</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/network/">network</a></li></ul>
     </div>
@@ -176,7 +184,7 @@
   
     
   <div class="widget-wrap">
-    <h3 class="widget-title">Nube de Tags</h3>
+    <h3 class="widget-title">Tag Cloud</h3>
     <div class="widget tagcloud">
       <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Charles/" style="font-size: 10px;">Charles</a> <a href="/tags/DexClassLoader/" style="font-size: 10px;">DexClassLoader</a> <a href="/tags/HTTP/" style="font-size: 10px;">HTTP</a> <a href="/tags/Sinature-Scheme-v1/" style="font-size: 10px;">Sinature Scheme v1</a> <a href="/tags/Sinature-Scheme-v2/" style="font-size: 10px;">Sinature Scheme v2</a> <a href="/tags/android/" style="font-size: 10px;">android</a> <a href="/tags/apksigning/" style="font-size: 10px;">apksigning</a> <a href="/tags/git/" style="font-size: 20px;">git</a> <a href="/tags/nuwa/" style="font-size: 10px;">nuwa</a> <a href="/tags/ssh/" style="font-size: 10px;">ssh</a> <a href="/tags/zip/" style="font-size: 10px;">zip</a>
     </div>
@@ -185,7 +193,7 @@
   
     
   <div class="widget-wrap">
-    <h3 class="widget-title">Archivos</h3>
+    <h3 class="widget-title">Archives</h3>
     <div class="widget">
       <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/12/">December 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">November 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/05/">May 2014</a></li></ul>
     </div>
@@ -195,7 +203,7 @@
   
     
   <div class="widget-wrap">
-    <h3 class="widget-title">Posts recientes</h3>
+    <h3 class="widget-title">Recent Posts</h3>
     <div class="widget">
       <ul>
         
@@ -232,7 +240,7 @@
   <div class="outer">
     <div id="footer-info" class="inner">
       &copy; 2018 Jiasheng Lee<br>
-      Construido por <a href="http://hexo.io/" target="_blank">Hexo</a>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
     </div>
   </div>
 </footer>
