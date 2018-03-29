@@ -99,22 +99,6 @@
   </entry>
   
   <entry>
-    <title>AIDL的使用和实现原理分析</title>
-    <link href="http://ljsalm089.github.io/2016/01/20/AIDL%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86%E5%88%86%E6%9E%90/"/>
-    <id>http://ljsalm089.github.io/2016/01/20/AIDL实现原理分析/</id>
-    <published>2016-01-20T07:00:00.000Z</published>
-    <updated>2018-03-29T07:52:37.481Z</updated>
-    
-    <summary type="html">
-    
-    </summary>
-    
-      <category term="android aidl" scheme="http://ljsalm089.github.io/categories/android-aidl/"/>
-    
-    
-  </entry>
-  
-  <entry>
     <title>Android项目版本管理</title>
     <link href="http://ljsalm089.github.io/2015/11/10/Android%E9%A1%B9%E7%9B%AE%E7%89%88%E6%9C%AC%E7%AE%A1%E7%90%86/"/>
     <id>http://ljsalm089.github.io/2015/11/10/Android项目版本管理/</id>
