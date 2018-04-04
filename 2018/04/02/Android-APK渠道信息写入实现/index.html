@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>Android APK渠道信息写入实现和读取 | Jiasheng Lee&#39;s Blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="背景《APK签名机制说明》中已经了解Android的签名和校验机制，此篇基于此前提，来说明一下如何绕过Android的签名校验机制，以实现在APK中添加一些自定义的信息。">
+<meta name="keywords" content="Android,Channel,Signature Scheme v1,Signature Scheme v2">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Android APK渠道信息写入实现和读取">
+<meta property="og:url" content="http://ljsalm089.github.io/2018/04/02/Android-APK渠道信息写入实现/index.html">
+<meta property="og:site_name" content="Jiasheng Lee&#39;s Blog">
+<meta property="og:description" content="背景《APK签名机制说明》中已经了解Android的签名和校验机制，此篇基于此前提，来说明一下如何绕过Android的签名校验机制，以实现在APK中添加一些自定义的信息。">
+<meta property="og:locale" content="CN-ZH">
+<meta property="og:image" content="http://ljsalm089.github.io/images/apk_channel_info/add_channel_to_v1_apk.jpg">
+<meta property="og:image" content="http://ljsalm089.github.io/images/about_apk_signing/scheme_v2_find_signing_block_2.png">
+<meta property="og:image" content="http://ljsalm089.github.io/images/apk_channel_info/add_channel_to_v2_apk.jpg">
+<meta property="og:updated_time" content="2018-04-04T07:40:25.151Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Android APK渠道信息写入实现和读取">
+<meta name="twitter:description" content="背景《APK签名机制说明》中已经了解Android的签名和校验机制，此篇基于此前提，来说明一下如何绕过Android的签名校验机制，以实现在APK中添加一些自定义的信息。">
+<meta name="twitter:image" content="http://ljsalm089.github.io/images/apk_channel_info/add_channel_to_v1_apk.jpg">
+  
+    <link rel="alternate" href="/atom.xml" title="Jiasheng Lee&#39;s Blog" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Jiasheng Lee&#39;s Blog</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://ljsalm089.github.io"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-Android-APK渠道信息写入实现" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2018/04/02/Android-APK渠道信息写入实现/" class="article-date">
+  <time datetime="2018-04-02T09:17:02.000Z" itemprop="datePublished">2018-04-02</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Android/">Android</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Android APK渠道信息写入实现和读取
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h4 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h4><p><a href="http://ljsalm089.github.io/2018/03/19/APK%E7%AD%BE%E5%90%8D%E6%9C%BA%E5%88%B6%E8%AF%B4%E6%98%8E/">《APK签名机制说明》</a>中已经了解Android的签名和校验机制，此篇基于此前提，来说明一下如何绕过Android的签名校验机制，以实现在APK中添加一些自定义的信息。<br><a id="more"></a></p>
+<h4 id="针对Signature-Scheme-v1渠道信息的写入"><a href="#针对Signature-Scheme-v1渠道信息的写入" class="headerlink" title="针对Signature Scheme v1渠道信息的写入"></a>针对Signature Scheme v1渠道信息的写入</h4><p>由于使用Signature Scheme v1签名的APK，仅仅只会校验META-INF文件夹以外的文件的是否被修改过，那么针对此情况，我们完全可以将我们需要携带的信息，添加到META-INFO文件夹下，只要我们不修改其中与签名有关的文件信息和其中被校验的文件，那么都可以校验通过的。<br>此处，使用Python脚本<code>addEmptyFileToMETA.py</code>来将文件写入到APK的META-INFO文件夹下，其代码实现如下：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> sys <span class="keyword">import</span> argv</span><br><span class="line"><span class="keyword">import</span> zipfile</span><br><span class="line"></span><br><span class="line">script, apkFile, emptyFile, channelName = argv</span><br><span class="line"></span><br><span class="line">zipped = zipfile.ZipFile(apkFile, <span class="string">'a'</span>, zipfile.ZIP_DEFLATED)</span><br><span class="line">empty_channel_file = <span class="string">"META-INF/&#123;channel&#125;"</span>.format(chanel=channelName)</span><br><span class="line">zipped.write(emptyFile, empty_channel_file)</span><br><span class="line">zipped.close()</span><br></pre></td></tr></table></figure></p>
+<p>下面尝试将一张二维码图片写入到META-INFO文件夹下，并校验APK是否能够正常覆盖安装，以校验是否破坏了APK的签名：<br><img src="/images/apk_channel_info/add_channel_to_v1_apk.jpg" alt=""><br>如上可知，虽然使用<code>jarsigner</code>命令检测时，会多了一个警告信息，但是在Android系统上，却能够正常的覆盖安装原有的app的，所以针对使用Signature Scheme v1签名的APK，可以通过在META-INFO文件夹下添加文件，以实现在APK中携带一下自定义信息。</p>
+<h4 id="针对Signature-Scheme-v1渠道信息的读取"><a href="#针对Signature-Scheme-v1渠道信息的读取" class="headerlink" title="针对Signature Scheme v1渠道信息的读取"></a>针对Signature Scheme v1渠道信息的读取</h4><p>至于对应渠道信息的获取，只需要从<code>java.util.zip.ZipFile</code>中获取出对应<code>java.util.zip.ZipEntry</code>的输入流并读取即可：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">ZipFile file = <span class="keyword">new</span> File(context.getApplicationInfo().sourceDir);</span><br><span class="line">Enumeration&lt;?&gt; entries = file.entries();</span><br><span class="line"><span class="keyword">while</span> (entries.hasMoreElements()) &#123;</span><br><span class="line">    ZipEntry entry = ((ZipEntry) entries.nextElement());</span><br><span class="line">    <span class="keyword">if</span> (TextUtils.equals(entry.getName(), channelFileName)) &#123;</span><br><span class="line">        InputStream is = file.getInputStream(entry);</span><br><span class="line">        ...</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="针对Signature-Scheme-v2渠道信息的写入"><a href="#针对Signature-Scheme-v2渠道信息的写入" class="headerlink" title="针对Signature Scheme v2渠道信息的写入"></a>针对Signature Scheme v2渠道信息的写入</h4><p>由于使用Signature Scheme v2签名的APK，会对APK除Signing Block之外的数据都进行摘要验证，所以没办法像v1将渠道信息写入META-INFO文件夹来实现。但这并不代表着无法在APK内写入额外的信息，通过查看APK签名校验时获取签名信息的逻辑可以发现，系统通过遍历Signing Block中的所有键值对，并获取id为<code>0x7109871a</code>的value，而对于id非<code>0x7109871a</code>的键值对，则直接进行忽略(<em>最好将自定义的键值对插在id为<code>0x7109871a</code>键值对之后，不然使用apksigner进行校验apk的时候，会有warning提示；另外尽量避免使用<code>0x7109871a</code>作为id，即使要用，也一定要放在原有<code>0x7109871a</code>id的后面</em>)：<br><img src="http://ljsalm089.github.io/images/about_apk_signing/scheme_v2_find_signing_block_2.png" alt=""><br>针对此情况，完全可以构建一个自定义的键值对，用于保存渠道或其他信息，然后插入到APK的Signing Block中，从而避免系统校验签名后插入的内容：<br><img src="/images/apk_channel_info/add_channel_to_v2_apk.jpg" alt=""><br>由于在Signing Block中插入了额外的数据，会导致ZIP文件格式错乱，因此，必须要修改End of Central Directory块中Central Directory在文件中的偏移量，在原有偏移量的基础上加上插入额外数据的大小即可。因为在校验签名的时候，系统会现将该字段还原为没有Signing Block时的偏移量再进行计算摘要数据，所以此处修改该字段的数据，并不会破坏原有的签名信息。<br>由于代码比较长，所以就不在此贴出对应代码，具体代码可参考：<a href="https://github.com/ljsalm089/tools/tree/master/Python/ApkV2ChannelTools" target="_blank" rel="noopener">ApkV2ChannelTools</a></p>
+<h4 id="针对Signature-Scheme-v2渠道信息的读取"><a href="#针对Signature-Scheme-v2渠道信息的读取" class="headerlink" title="针对Signature Scheme v2渠道信息的读取"></a>针对Signature Scheme v2渠道信息的读取</h4><p>与系统读取APK签名信息的流程一样，整个算法流程就是根据ZIP文件格式解析流程，先找到End of Central Directory块的起始位置，然后查找对应的Central Directory位置，从而解析出对应的Signing Block信息(<em>其中有个需要注意的是，APK不支持使用ZIP64的格式，所以在获取Signing Block的时候如果遇到ZIP64标示块的话，会支持抛出异常</em>)。<br>由于代码比较长，所以就不在此贴出对应代码，具体代码可参考：<a href="https://github.com/ljsalm089/tools/tree/master/Android/ApkV2ChannelTools" target="_blank" rel="noopener">ApkV2ChannelTools</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://ljsalm089.github.io/2018/04/02/Android-APK渠道信息写入实现/" data-id="cjfksak5e00016w8kuq75e3ib" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Android/">Android</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Channel/">Channel</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Signature-Scheme-v1/">Signature Scheme v1</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Signature-Scheme-v2/">Signature Scheme v2</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2018/03/19/APK签名机制说明/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">APK签名机制说明</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Android/">Android</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/git/">git</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/network/">network</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Android/">Android</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Channel/">Channel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Charles/">Charles</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/DexClassLoader/">DexClassLoader</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/HTTP/">HTTP</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Signature-Scheme-v1/">Signature Scheme v1</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Signature-Scheme-v2/">Signature Scheme v2</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Sinature-Scheme-v1/">Sinature Scheme v1</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Sinature-Scheme-v2/">Sinature Scheme v2</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/apksigning/">apksigning</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/git/">git</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/nuwa/">nuwa</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ssh/">ssh</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/zip/">zip</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Android/" style="font-size: 20px;">Android</a> <a href="/tags/Channel/" style="font-size: 10px;">Channel</a> <a href="/tags/Charles/" style="font-size: 10px;">Charles</a> <a href="/tags/DexClassLoader/" style="font-size: 10px;">DexClassLoader</a> <a href="/tags/HTTP/" style="font-size: 10px;">HTTP</a> <a href="/tags/Signature-Scheme-v1/" style="font-size: 10px;">Signature Scheme v1</a> <a href="/tags/Signature-Scheme-v2/" style="font-size: 10px;">Signature Scheme v2</a> <a href="/tags/Sinature-Scheme-v1/" style="font-size: 10px;">Sinature Scheme v1</a> <a href="/tags/Sinature-Scheme-v2/" style="font-size: 10px;">Sinature Scheme v2</a> <a href="/tags/apksigning/" style="font-size: 10px;">apksigning</a> <a href="/tags/git/" style="font-size: 15px;">git</a> <a href="/tags/nuwa/" style="font-size: 10px;">nuwa</a> <a href="/tags/ssh/" style="font-size: 10px;">ssh</a> <a href="/tags/zip/" style="font-size: 10px;">zip</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">April 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/12/">December 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">November 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/05/">May 2014</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2018/04/02/Android-APK渠道信息写入实现/">Android APK渠道信息写入实现和读取</a>
+          </li>
+        
+          <li>
+            <a href="/2018/03/19/APK签名机制说明/">APK签名机制说明</a>
+          </li>
+        
+          <li>
+            <a href="/2017/12/20/基于HTTP报文分析HTTP协议/">基于HTTP报文分析HTTP协议</a>
+          </li>
+        
+          <li>
+            <a href="/2016/11/29/Android_Nuwa实现原理分析/">关于Android APP Hot Fix－Nuwa实现原理分析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/10/Android项目版本管理/">Android项目版本管理</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    <div class="widget tag">
+    <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+    <script> (adsbygoogle = window.adsbygoogle || []).push({
+        google_ad_client: "ca-pub-4538901767955274",
+        enable_page_level_ads: true
+    });
+</script>
+</div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2018 Jiasheng Lee<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+
+
+  </div>
+</body>
+</html>
