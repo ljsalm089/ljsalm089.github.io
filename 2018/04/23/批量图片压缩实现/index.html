@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>批量图片压缩实现 | Jiasheng Lee&#39;s Blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="背景由于当前公司正在开发的Android客户端需要用到大量的图片资源，而为了保证市场分发的apk尽可能的小，所以在开发的过程中，都尽可能的让引入的图片尽可能的小，除了普遍使用的用style代替图片，用.9处理图片方式之外，还有大家公认的做法是，使用Tiny服务对图片进行有损压缩。">
+<meta name="keywords" content="png,jpg,tiny">
+<meta property="og:type" content="article">
+<meta property="og:title" content="批量图片压缩实现">
+<meta property="og:url" content="http://ljsalm089.github.io/2018/04/23/批量图片压缩实现/index.html">
+<meta property="og:site_name" content="Jiasheng Lee&#39;s Blog">
+<meta property="og:description" content="背景由于当前公司正在开发的Android客户端需要用到大量的图片资源，而为了保证市场分发的apk尽可能的小，所以在开发的过程中，都尽可能的让引入的图片尽可能的小，除了普遍使用的用style代替图片，用.9处理图片方式之外，还有大家公认的做法是，使用Tiny服务对图片进行有损压缩。">
+<meta property="og:locale" content="CN-ZH">
+<meta property="og:image" content="http://ljsalm089.github.io/images/optimze_image_batch/jpeg_file_format.png">
+<meta property="og:image" content="http://ljsalm089.github.io/images/optimze_image_batch/jpeg_copyright_info.png">
+<meta property="og:image" content="http://ljsalm089.github.io/images/optimze_image_batch/png_file_format.png">
+<meta property="og:image" content="http://ljsalm089.github.io/images/optimze_image_batch/png_chunk_format.png">
+<meta property="og:updated_time" content="2018-05-11T15:45:36.781Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="批量图片压缩实现">
+<meta name="twitter:description" content="背景由于当前公司正在开发的Android客户端需要用到大量的图片资源，而为了保证市场分发的apk尽可能的小，所以在开发的过程中，都尽可能的让引入的图片尽可能的小，除了普遍使用的用style代替图片，用.9处理图片方式之外，还有大家公认的做法是，使用Tiny服务对图片进行有损压缩。">
+<meta name="twitter:image" content="http://ljsalm089.github.io/images/optimze_image_batch/jpeg_file_format.png">
+  
+    <link rel="alternate" href="/atom.xml" title="Jiasheng Lee&#39;s Blog" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Jiasheng Lee&#39;s Blog</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://ljsalm089.github.io"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-批量图片压缩实现" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2018/04/23/批量图片压缩实现/" class="article-date">
+  <time datetime="2018-04-23T07:45:38.000Z" itemprop="datePublished">2018-04-23</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/optimization/">optimization</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      批量图片压缩实现
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h4 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h4><p>由于当前公司正在开发的Android客户端需要用到大量的图片资源，而为了保证市场分发的apk尽可能的小，所以在开发的过程中，都尽可能的让引入的图片尽可能的小，除了普遍使用的用style代替图片，用.9处理图片方式之外，还有大家公认的做法是，使用<a href="https://tinypng.com/" target="_blank" rel="noopener">Tiny</a>服务对图片进行有损压缩。<br><a id="more"></a><br>当前github上面也有对应的gradle插件，可以对项目中所使用的图片自动上传到tiny进行压缩优化的项目(<a href="https://github.com/waynell/TinyPngPlugin" target="_blank" rel="noopener">TinyPngPlugin</a>)，也有对应的Intellij插件(<a href="https://plugins.jetbrains.com/plugin/9518-tinypic" target="_blank" rel="noopener">TinyPic</a>)。但是都有点不满足于当前自己的需求，gradle插件的项目，使用Groovy实现，需要讲tiny token等配置配置到项目中，且通过匹配文件的文件路径和md5值来判断是否需要上传优化图片，如果不小心保存md5的文件被删除了，则会导致重新上传优化的情况，且当前只支持设置一个tiny token。而Intellij插件同样只支持一个tiny token，且需要用户手动选择需要优化的图片。</p>
+<h4 id="目标"><a href="#目标" class="headerlink" title="目标"></a>目标</h4><p>鉴于当前我们项目和开发的一些情况，我们期望这样的工具能有以下功能：</p>
+<ul>
+<li>可以设置多个Tiny token。由于Tiny一个token一个月只能优化500张图片，而当前项目已经累积了不止500张图片资源了，所以期望可以设置token并动态切换。</li>
+<li>对开发者友好。使用之后开发者完全可以不用感知该工具的存在，只需要将自己的图片添加入项目即可。</li>
+<li>对优化过的图片不进行二次优化。无论在删除配置文件、移动文件或修改文件名，都不进行二次优化。</li>
+</ul>
+<h4 id="实现原理"><a href="#实现原理" class="headerlink" title="实现原理"></a>实现原理</h4><p>针对上面几个目标，都是可以实现的：</p>
+<ul>
+<li>使用配置文件来保存多个token，当识别到前个token无效时，使用下一个token继续执行上一步动作；</li>
+<li>由于我们当前是使用jenkins来构建测试和渠道包，所以可以写脚本工具，然后在jenkins中嵌入到测试包的构建脚本中；</li>
+<li>针对图片是否优化过的判断，其实最好的方式是将优化过的图片打上标记，这样只要不替换这个图片，无论怎么修改文件名、移动文件或删除配置，都不会进行二次优化。</li>
+</ul>
+<p>以上针对三种情况的解决方式，难的地方在于怎么为图片打上标记。事实上，图片本身会携带出图片显示内容之外的信息，如图片作者、拍摄位置的经纬度、时间等等，我们完全可以把优化标记，放在这些字段上面。</p>
+<h5 id="JPEG图片标记实现"><a href="#JPEG图片标记实现" class="headerlink" title="JPEG图片标记实现"></a>JPEG图片标记实现</h5><h6 id="JPEG文件格式"><a href="#JPEG文件格式" class="headerlink" title="JPEG文件格式"></a>JPEG文件格式</h6><p><img src="/images/optimze_image_batch/jpeg_file_format.png" alt=""><br>由上图可知，一个JPEG图片文件，由多个段落组成，且每个段落的起始标示为两个字节的<code>0xFF</code>加两个字节的段落类型标识。</p>
+<h6 id="JPEG标记实现"><a href="#JPEG标记实现" class="headerlink" title="JPEG标记实现"></a>JPEG标记实现</h6><p>由于当时使用Python来进行实现该脚本，且Python有对应的类库来进行读写JPEG的APPn段落的exif信息，所以，此处直接将图片的优化标记放置在了图片元数据的copyright字段。实现代码如下：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">JPGMarker</span><span class="params">(Marker)</span>:</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, filename, marker)</span>:</span></span><br><span class="line">        self._fileName = filename</span><br><span class="line">        self._marker = marker</span><br><span class="line"></span><br><span class="line"><span class="meta">    @property</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">file_name</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">return</span> self._fileName</span><br><span class="line"></span><br><span class="line"><span class="meta">    @property</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">marker</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">return</span> self._marker</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">mark</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""</span></span><br><span class="line"><span class="string">        open image and add mark to it</span></span><br><span class="line"><span class="string">        :return: True if success, False if fail</span></span><br><span class="line"><span class="string">        """</span></span><br><span class="line">        exif_dict = piexif.load(self._fileName)</span><br><span class="line">        <span class="keyword">if</span> exif_dict <span class="keyword">is</span> <span class="keyword">not</span> <span class="number">0</span> <span class="keyword">and</span> <span class="string">'0th'</span> <span class="keyword">in</span> exif_dict:</span><br><span class="line">            exif_dict[<span class="string">'0th'</span>][piexif.ImageIFD.Copyright] = self._marker</span><br><span class="line">            exif_bytes = piexif.dump(exif_dict)</span><br><span class="line">            piexif.insert(exif_bytes, self._fileName)</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">True</span></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">False</span></span><br></pre></td></tr></table></figure></p>
+<p>处理后的图片，可以直接看到图片元数据中的copyright变为了图片优化后的标志：<br><img src="/images/optimze_image_batch/jpeg_copyright_info.png" alt=""></p>
+<h5 id="PNG图片标记实现"><a href="#PNG图片标记实现" class="headerlink" title="PNG图片标记实现"></a>PNG图片标记实现</h5><h6 id="PNG文件格式"><a href="#PNG文件格式" class="headerlink" title="PNG文件格式"></a>PNG文件格式</h6><p><img src="/images/optimze_image_batch/png_file_format.png" alt=""><br>一个PNG图片文件，由文件头<code>89 50 4E 0D 0A 1A 0A</code> + 多个数据块组成，每个数据块由如下4部分组成：<br><img src="/images/optimze_image_batch/png_chunk_format.png" alt=""><br>由于PNG中某些数据块可以存在多个，且其位置没有限制，因此，完全可以构造一个数据块然后插入到图片中，此处我选择的是tExt数据块。代码实现如下：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">PNGMarker</span><span class="params">(Marker)</span>:</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, filename, marker)</span>:</span></span><br><span class="line">        self._fileName = filename</span><br><span class="line">        self._marker = marker</span><br><span class="line"></span><br><span class="line"><span class="meta">    @property</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">file_name</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">return</span> self._fileName</span><br><span class="line"></span><br><span class="line"><span class="meta">    @property</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">marker</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">return</span> self._marker</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">mark</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""</span></span><br><span class="line"><span class="string">        open image and add mark to it</span></span><br><span class="line"><span class="string">        :return: True if success, False if fail</span></span><br><span class="line"><span class="string">        """</span></span><br><span class="line">        <span class="keyword">with</span> open(self._fileName, <span class="string">'r+b'</span>) <span class="keyword">as</span> f:</span><br><span class="line">            f.seek(-len(_png_end), os.SEEK_END)</span><br><span class="line">            end_sign = f.read()</span><br><span class="line">            f.seek(-len(_png_end), os.SEEK_END)</span><br><span class="line">            f.write(self._marker)</span><br><span class="line">            f.write(end_sign)</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">True</span></span><br></pre></td></tr></table></figure></p>
+<p>其中对应数据块数据的生成：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MarkCheckFactory</span><span class="params">(object)</span>:</span></span><br><span class="line"></span><br><span class="line"><span class="meta">    @staticmethod</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">_generate_png_mark</span><span class="params">(mark_sign)</span>:</span></span><br><span class="line">        content = bytearray(<span class="string">b'tEXt'</span>)</span><br><span class="line">        content.extend(mark_sign)</span><br><span class="line">        content_bytes = bytearray(struct.pack(<span class="string">'&gt;L'</span>, len(mark_sign)))</span><br><span class="line">        content_bytes.extend(content)</span><br><span class="line">        content_bytes.extend((binascii.crc32(content)).to_bytes(</span><br><span class="line">            <span class="number">4</span>, byteorder=<span class="string">'big'</span>))</span><br><span class="line">        <span class="keyword">return</span> content_bytes</span><br></pre></td></tr></table></figure></p>
+<h4 id="结尾"><a href="#结尾" class="headerlink" title="结尾"></a>结尾</h4><p>最后脚本还实现了以线程池来针对目标目录下的所有子目录下文件进行遍历优化，具体代码可参考：<a href="https://github.com/ljsalm089/tools/tree/master/Python/ImageOptimize" target="_blank" rel="noopener">ImageOptimize</a>。</p>
+<h4 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h4><p><a href="https://en.wikipedia.org/wiki/JPEG" target="_blank" rel="noopener">1. JPEG</a><br><a href="https://ctf-wiki.github.io/ctf-wiki/misc/picture/png/" target="_blank" rel="noopener">2. PNG</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://ljsalm089.github.io/2018/04/23/批量图片压缩实现/" data-id="cjgbyropa0004xu8k0gm7pyha" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/jpg/">jpg</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/png/">png</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/tiny/">tiny</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2018/04/02/Android-APK渠道信息写入实现/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Android APK渠道信息写入实现和读取</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Android/">Android</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/git/">git</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/network/">network</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/optimization/">optimization</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Android/">Android</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Channel/">Channel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Charles/">Charles</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/DexClassLoader/">DexClassLoader</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/HTTP/">HTTP</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Signature-Scheme-v1/">Signature Scheme v1</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Signature-Scheme-v2/">Signature Scheme v2</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/apksigning/">apksigning</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/git/">git</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/jpg/">jpg</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/nuwa/">nuwa</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/png/">png</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ssh/">ssh</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/tiny/">tiny</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/zip/">zip</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Android/" style="font-size: 20px;">Android</a> <a href="/tags/Channel/" style="font-size: 10px;">Channel</a> <a href="/tags/Charles/" style="font-size: 10px;">Charles</a> <a href="/tags/DexClassLoader/" style="font-size: 10px;">DexClassLoader</a> <a href="/tags/HTTP/" style="font-size: 10px;">HTTP</a> <a href="/tags/Signature-Scheme-v1/" style="font-size: 15px;">Signature Scheme v1</a> <a href="/tags/Signature-Scheme-v2/" style="font-size: 15px;">Signature Scheme v2</a> <a href="/tags/apksigning/" style="font-size: 10px;">apksigning</a> <a href="/tags/git/" style="font-size: 15px;">git</a> <a href="/tags/jpg/" style="font-size: 10px;">jpg</a> <a href="/tags/nuwa/" style="font-size: 10px;">nuwa</a> <a href="/tags/png/" style="font-size: 10px;">png</a> <a href="/tags/ssh/" style="font-size: 10px;">ssh</a> <a href="/tags/tiny/" style="font-size: 10px;">tiny</a> <a href="/tags/zip/" style="font-size: 10px;">zip</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">April 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/12/">December 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">November 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/05/">May 2014</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2018/04/23/批量图片压缩实现/">批量图片压缩实现</a>
+          </li>
+        
+          <li>
+            <a href="/2018/04/02/Android-APK渠道信息写入实现/">Android APK渠道信息写入实现和读取</a>
+          </li>
+        
+          <li>
+            <a href="/2018/03/19/APK签名机制说明/">APK签名机制说明</a>
+          </li>
+        
+          <li>
+            <a href="/2017/12/20/基于HTTP报文分析HTTP协议/">基于HTTP报文分析HTTP协议</a>
+          </li>
+        
+          <li>
+            <a href="/2016/11/29/Android_Nuwa实现原理分析/">关于Android APP Hot Fix－Nuwa实现原理分析</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2018 Jiasheng Lee<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+
+
+  </div>
+</body>
+</html>
